@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Found Words</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            width: 80%;
+            background-color: #ffffff;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+        h1 {
+            margin-top: 0;
+            font-size: 1.5rem;
+            color: #333333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        th, td {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 8px;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+            position: relative;
+            padding-right: 2rem; /* Added padding to accommodate the eye icon */
+            cursor: move; /* Indicate that columns can be moved */
+        }
+        th.dragging {
+            opacity: 0.5; /* Visual feedback while dragging */
+        }
+        th .toggle-icon {
+            position: absolute;
+            top: 50%;
+            right: 0.5rem; /* Adjusted position */
+            transform: translateY(-50%);
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        th.hidden, td.hidden {
+            visibility: hidden; /* Use visibility to hide columns */
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        .back-button, .sort-form button {
+            display: inline-block;
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 0.25rem;
+            transition: background-color 0.3s ease;
+            cursor: pointer;
+        }
+        .back-button:hover, .sort-form button:hover {
+            background-color: #0056b3;
+        }
+        .sort-form input {
+            padding: 0.5rem;
+            border: 1px solid #ced4da;
+            border-radius: 0.25rem;
+            margin-right: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Found Words</h1>
+        
+        <!-- Form for custom HSK sorting -->
+        <form action="{{ url_for('find_words_view') }}" method="get" class="sort-form">
+            <input type="number" name="hsk_level" min="1" max="9" placeholder="Enter HSK level">
+            <button type="submit">Sort by HSK Level</button>
+        </form>
+
+        <!-- Word Table -->
+        <table>
+            <thead>
+                <tr>
+                    <th draggable="true" ondragstart="drag(event)" ondragover="allowDrop(event)" ondrop="drop(event)" id="word-header">Word <span class="toggle-icon" onclick="toggleColumnVisibility('word-column')"> 👁 </span></th>
+                    <th draggable="true" ondragstart="drag(event)" ondragover="allowDrop(event)" ondrop="drop(event)" id="pinyin-header">Pinyin <span class="toggle-icon" onclick="toggleColumnVisibility('pinyin-column')"> 👁 </span></th>
+                    <th draggable="true" ondragstart="drag(event)" ondragover="allowDrop(event)" ondrop="drop(event)" id="translation-header">Translation <span class="toggle-icon" onclick="toggleColumnVisibility('translation-column')"> 👁 </span></th>
+                    <th draggable="true" ondragstart="drag(event)" ondragover="allowDrop(event)" ondrop="drop(event)" id="hsk-header">HSK Level <span class="toggle-icon" onclick="toggleColumnVisibility('hsk-column')"> 👁 </span></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for word in pinyins %}
+                    <tr>
+                        <td class="word-column">{{ word }}</td>
+                        <td class="pinyin-column">{{ pinyins[word] }}</td>
+                        <td class="translation-column">{{ translations[word] }}</td>
+                        <td class="hsk-column">{{ hsk_levels[word] }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <a href="{{ url_for('index') }}" class="back-button">Back to Home</a>
+    </div>
+
+    <script>
+        function allowDrop(ev) {
+            ev.preventDefault();
+        }
+
+        function drag(ev) {
+            ev.dataTransfer.setData("text", ev.target.id);
+            ev.target.classList.add('dragging');
+        }
+
+        function drop(ev) {
+            ev.preventDefault();
+            var data = ev.dataTransfer.getData("text");
+            var draggedElement = document.getElementById(data);
+            var target = ev.target;
+
+            if (target.tagName === "TH") {
+                // Swap headers
+                var targetIndex = Array.from(target.parentNode.children).indexOf(target);
+                var draggedIndex = Array.from(target.parentNode.children).indexOf(draggedElement);
+                
+                // Swap column classes in table
+                swapColumnClasses(draggedIndex, targetIndex);
+
+                // Swap header positions
+                target.parentNode.insertBefore(draggedElement, target);
+            }
+            draggedElement.classList.remove('dragging');
+        }
+
+        function swapColumnClasses(fromIndex, toIndex) {
+            let table = document.querySelector('table');
+            let rows = table.querySelectorAll('tr');
+            rows.forEach(row => {
+                let cells = row.children;
+                if (cells.length > fromIndex && cells.length > toIndex) {
+                    let fromCell = cells[fromIndex];
+                    let toCell = cells[toIndex];
+                    
+                    // Swap cells
+                    row.insertBefore(fromCell, toCell);
+                    row.insertBefore(toCell, fromCell.nextSibling);
+                }
+            });
+        }
+
+        function toggleColumnVisibility(columnClass) {
+            var elements = document.getElementsByClassName(columnClass);
+            for (var i = 0; i < elements.length; i++) {
+                elements[i].classList.toggle('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
