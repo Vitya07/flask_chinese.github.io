@@ -8,3 +8,5 @@ MarkupSafe==   2.1.5
 pip      ==    24.0   
 Werkzeug ==    3.0.3  
 gevent == 24.2.1
+
+waitress == 3.0.0
